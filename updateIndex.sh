@@ -5,8 +5,8 @@
 
 set -euo pipefail
 
-ASSETS_DIR="${ASSETS_DIR:-/usr/share/nginx/html/assets}"
-OUTPUT="${OUTPUT:-/usr/share/nginx/html/index.json}"
+ASSETS_DIR="${ASSETS_DIR:-assets}"
+OUTPUT="${OUTPUT:-./index.json}"
 
 if [[ ! -d "$ASSETS_DIR" ]]; then
     echo "updateIndex: assets dir not found: $ASSETS_DIR" >&2
