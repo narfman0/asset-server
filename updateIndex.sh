@@ -3,15 +3,16 @@
 # top-level totals plus per-pack metadata with the full file listing
 # (relative path, size in bytes, mtime).
 #
-# Run on the host (or in a container with env vars set):
-#   ASSETS_DIR  source dir whose immediate subdirs are "packs" (default: assets)
-#   OUTPUT      destination JSON file (default: ./index.json)
-#   URL_PREFIX  served path prefix written into file paths (default: assets)
+# Run at container startup by the Dockerfile entrypoint. Override the
+# env vars to invoke from a host shell:
+#   ASSETS_DIR  source dir whose immediate subdirs are "packs"
+#   OUTPUT      destination JSON file
+#   URL_PREFIX  served path prefix written into file paths
 
 set -euo pipefail
 
-ASSETS_DIR="${ASSETS_DIR:-assets}"
-OUTPUT="${OUTPUT:-./index.json}"
+ASSETS_DIR="${ASSETS_DIR:-/usr/share/nginx/html/assets}"
+OUTPUT="${OUTPUT:-/usr/share/nginx/html/index.json}"
 URL_PREFIX="${URL_PREFIX:-assets}"
 
 generated_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
