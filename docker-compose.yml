@@ -1,0 +1,10 @@
+services:
+  assets:
+    build: .
+    image: asset-server:latest
+    container_name: asset-server
+    restart: unless-stopped
+    ports:
+      - "${ASSET_PORT:-49200}:80"
+    volumes:
+      - ${ASSETS_PATH:?set ASSETS_PATH in .env to your synty assets directory}:/usr/share/nginx/html/assets:ro
