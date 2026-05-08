@@ -1,6 +1,6 @@
 FROM nginx:alpine
 
-RUN apk add --no-cache bash jq
+RUN apk add --no-cache bash jq findutils
 
 RUN cat > /etc/nginx/conf.d/default.conf <<'EOF'
 server {
