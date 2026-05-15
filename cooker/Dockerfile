@@ -10,8 +10,8 @@
 
 FROM debian:12-slim
 
-ARG BLENDER_VERSION=5.0.0
-ARG BLENDER_MAJOR_MINOR=5.0
+ARG BLENDER_VERSION=5.1.1
+ARG BLENDER_MAJOR_MINOR=5.1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         wget xz-utils ca-certificates \
