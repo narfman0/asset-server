@@ -1,10 +1,40 @@
 services:
+  # nginx — serves cooked assets at /assets/ and the auto-generated index at /index.json.
   assets:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: asset-server:latest
     container_name: asset-server
     restart: unless-stopped
     ports:
       - "${ASSET_PORT:-49200}:80"
     volumes:
-      - ${ASSETS_PATH:?set ASSETS_PATH in .env to your synty assets directory}:/usr/share/nginx/html/assets:ro
+      # nginx is read-only on the cooked tree — the cooker is the only writer.
+      - ${COOKED_PATH:?set COOKED_PATH in .env}:/usr/share/nginx/html/assets:ro
+
+  # cooker — watches raw/ for FBX/etc, transforms to cooked/, regenerates index.
+  # Runs Blender headless for FBX→GLB conversion. Other transforms (e.g.
+  # ogg normalization with ffmpeg) can be added under cooker/transforms/.
+  cooker:
+    build:
+      context: ./cooker
+      dockerfile: Dockerfile
+    image: asset-cooker:latest
+    container_name: asset-cooker
+    restart: unless-stopped
+    environment:
+      RAW_DIR: /raw
+      COOKED_DIR: /cooked
+      INDEX_OUTPUT: /cooked/index.json
+      # URL_PREFIX is written into the index's file paths. Must match what
+      # the nginx service exposes (location /assets/ → /cooked/ in this layout).
+      URL_PREFIX: assets
+      # Seconds of quiet before kicking off a cook+index cycle after the
+      # most recent fs event. Coalesces bursts of uploads.
+      DEBOUNCE_SECS: "5"
+    volumes:
+      - ${RAW_PATH:?set RAW_PATH in .env}:/raw:ro
+      - ${COOKED_PATH:?set COOKED_PATH in .env}:/cooked
+      # Share the index generator with the nginx container so both stay in sync.
+      - ./updateIndex.sh:/usr/local/bin/updateIndex.sh:ro

@@ -8,7 +8,14 @@ server {
     server_name _;
     root /usr/share/nginx/html;
 
-    index index.json;
+    # The cooker writes /usr/share/nginx/html/assets/index.json directly into
+    # the served tree, so /index.json resolves to it via the rewrite below.
+    location = /index.json {
+        try_files /assets/index.json =404;
+    }
+    location = / {
+        return 302 /index.json;
+    }
 
     location /assets/ {
         autoindex on;
@@ -22,8 +29,11 @@ server {
 }
 EOF
 
+# Index regeneration script lives outside this image — bind-mounted from the
+# host so cooker and nginx see the same script. The container's startup runs
+# it once as a belt-and-suspenders pass in case the cooker hasn't yet.
 COPY updateIndex.sh /usr/local/bin/updateIndex.sh
 RUN chmod +x /usr/local/bin/updateIndex.sh
 
 EXPOSE 80
-CMD ["/bin/sh", "-c", "/usr/local/bin/updateIndex.sh && nginx -g 'daemon off;'"]
+CMD ["/bin/sh", "-c", "ASSETS_DIR=/usr/share/nginx/html/assets OUTPUT=/usr/share/nginx/html/assets/index.json URL_PREFIX=assets /usr/local/bin/updateIndex.sh; nginx -g 'daemon off;'"]
