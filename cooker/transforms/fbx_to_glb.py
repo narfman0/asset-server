@@ -117,15 +117,18 @@ def convert_fbx_to_gltf(fbx_path: Path, output_dir: Path, rename_dict: dict):
         if n:
             print(f"  RENAMED: {n} bones")
 
+    tmp_file = output_dir / (fbx_path.stem + ".glb.tmp")
     try:
         bpy.ops.export_scene.gltf(
-            filepath=str(out_file),
+            filepath=str(tmp_file),
             export_format='GLB',
             export_materials='EXPORT',
             export_apply=True,
         )
+        tmp_file.rename(out_file)
         print(f"OK: {fbx_path.name} -> {out_file}")
     except Exception as e:
+        tmp_file.unlink(missing_ok=True)
         print(f"ERROR exporting {fbx_path.name}: {e}")
 
 
