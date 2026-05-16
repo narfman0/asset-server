@@ -43,4 +43,4 @@ COPY updateIndex.sh /usr/local/bin/updateIndex.sh
 RUN chmod +x /usr/local/bin/updateIndex.sh
 
 EXPOSE 80
-CMD ["/bin/sh", "-c", "ASSETS_DIR=/usr/share/nginx/html/assets OUTPUT=/usr/share/nginx/html/assets/index.json URL_PREFIX=assets /usr/local/bin/updateIndex.sh; nginx -g 'daemon off;'"]
+CMD ["/bin/sh", "-c", "COOKED_DIR=/usr/share/nginx/html/assets RAW_DIR=/raw OUTPUT=/usr/share/nginx/html/assets/index.json /usr/local/bin/updateIndex.sh; nginx -g 'daemon off;'"]

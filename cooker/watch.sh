@@ -20,9 +20,10 @@ log() { echo "[cooker $(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
 
 regenerate_index() {
     log "regenerating index → ${INDEX_OUTPUT}"
-    ASSETS_DIR="${COOKED_DIR}" \
+    COOKED_DIR="${COOKED_DIR}" \
+    RAW_DIR="${RAW_DIR}" \
     OUTPUT="${INDEX_OUTPUT}" \
-    URL_PREFIX="${URL_PREFIX}" \
+    URL_PREFIX_COOKED="${URL_PREFIX}" \
         /usr/local/bin/updateIndex.sh
 }
 

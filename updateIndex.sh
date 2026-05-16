@@ -1,63 +1,76 @@
 #!/usr/bin/env bash
-# Recursively walks the assets directory and writes a complete index.json:
-# top-level totals plus per-pack metadata with the full file listing
-# (relative path, size in bytes, mtime).
+# Walks both the cooked and raw asset directories and writes a combined index.json:
+#   { generated_at, cooked: { pack_count, file_count, total_size_bytes, packs: [...] },
+#                    raw:    { pack_count, file_count, total_size_bytes, packs: [...] } }
 #
-# Run at container startup by the Dockerfile entrypoint. Override the
-# env vars to invoke from a host shell:
-#   ASSETS_DIR  source dir whose immediate subdirs are "packs"
-#   OUTPUT      destination JSON file
-#   URL_PREFIX  served path prefix written into file paths
+# Override env vars to invoke from a host shell:
+#   COOKED_DIR   cooked assets tree (GLBs etc.) — served at URL_PREFIX_COOKED
+#   RAW_DIR      raw source tree (FBX etc.)      — served at URL_PREFIX_RAW
+#   OUTPUT       destination JSON file
+#   URL_PREFIX_COOKED  default: assets
+#   URL_PREFIX_RAW     default: raw
 
 set -euo pipefail
 
-ASSETS_DIR="${ASSETS_DIR:-/usr/share/nginx/html/assets}"
+COOKED_DIR="${COOKED_DIR:-/usr/share/nginx/html/assets}"
+RAW_DIR="${RAW_DIR:-/raw}"
 OUTPUT="${OUTPUT:-/usr/share/nginx/html/index.json}"
-URL_PREFIX="${URL_PREFIX:-assets}"
+URL_PREFIX_COOKED="${URL_PREFIX_COOKED:-assets}"
+URL_PREFIX_RAW="${URL_PREFIX_RAW:-raw}"
 
 generated_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-if [[ ! -d "$ASSETS_DIR" ]]; then
-    echo "updateIndex: assets dir not found: $ASSETS_DIR" >&2
-    jq -n --arg g "$generated_at" \
-        '{generated_at: $g, pack_count: 0, file_count: 0, total_size_bytes: 0, packs: []}' > "$OUTPUT"
-    exit 0
-fi
+# Emit per-pack JSON for one tree. Args: <dir> <url_prefix>
+index_tree() {
+    local dir="$1"
+    local prefix="$2"
 
-# Recursive walk: TSV with relpath\tsize_bytes\tmtime_epoch.
-# Requires GNU find (-printf). Piped straight into jq to avoid
-# materializing the file list in shell memory.
-( cd "$ASSETS_DIR" && find . -mindepth 1 -type f -printf '%P\t%s\t%T@\n' ) \
-| jq -R -s \
+    if [[ ! -d "$dir" ]]; then
+        echo '{"pack_count":0,"file_count":0,"total_size_bytes":0,"packs":[]}'
+        return
+    fi
+
+    ( cd "$dir" && find . -mindepth 1 -type f -printf '%P\t%s\t%T@\n' ) \
+    | jq -R -s \
+        --arg url_prefix "$prefix" '
+        [ split("\n")[]
+          | select(length > 0)
+          | split("\t")
+          | { relpath: .[0],
+              size:    (.[1] | tonumber),
+              mtime:   (.[2] | tonumber | floor | todate),
+              pack:    (if (.[0] | contains("/")) then (.[0] | split("/")[0]) else "_root" end),
+              path:    ($url_prefix + "/" + .[0])
+            }
+        ]
+        | group_by(.pack)
+        | map({
+              name: .[0].pack,
+              path: ($url_prefix + "/" + (if .[0].pack == "_root" then "" else (.[0].pack + "/") end)),
+              file_count: length,
+              total_size_bytes: (map(.size) | add),
+              files: map({path, size, mtime})
+            })
+        | { pack_count: length,
+            file_count: (map(.file_count) | add // 0),
+            total_size_bytes: (map(.total_size_bytes) | add // 0),
+            packs: .
+          }
+        '
+}
+
+cooked_json=$(index_tree "$COOKED_DIR" "$URL_PREFIX_COOKED")
+raw_json=$(index_tree "$RAW_DIR" "$URL_PREFIX_RAW")
+
+jq -n \
     --arg generated_at "$generated_at" \
-    --arg url_prefix "$URL_PREFIX" '
-    [ split("\n")[]
-      | select(length > 0)
-      | split("\t")
-      | { relpath: .[0],
-          size:    (.[1] | tonumber),
-          mtime:   (.[2] | tonumber | floor | todate),
-          pack:    (if (.[0] | contains("/")) then (.[0] | split("/")[0]) else "_root" end),
-          path:    ($url_prefix + "/" + .[0])
-        }
-    ]
-    | group_by(.pack)
-    | map({
-          name: .[0].pack,
-          path: ($url_prefix + "/" + (if .[0].pack == "_root" then "" else (.[0].pack + "/") end)),
-          file_count: length,
-          total_size_bytes: (map(.size) | add),
-          files: map({path, size, mtime})
-        })
-    | { generated_at: $generated_at,
-        pack_count: length,
-        file_count: (map(.file_count) | add // 0),
-        total_size_bytes: (map(.total_size_bytes) | add // 0),
-        packs: .
-      }
-    ' > "$OUTPUT"
+    --argjson cooked "$cooked_json" \
+    --argjson raw "$raw_json" \
+    '{ generated_at: $generated_at, cooked: $cooked, raw: $raw }' \
+    > "$OUTPUT"
 
-pack_count=$(jq '.pack_count' "$OUTPUT")
-file_count=$(jq '.file_count' "$OUTPUT")
-total_bytes=$(jq '.total_size_bytes' "$OUTPUT")
-echo "updateIndex: wrote $OUTPUT ($pack_count packs, $file_count files, $total_bytes bytes)"
+cooked_packs=$(echo "$cooked_json" | jq '.pack_count')
+cooked_files=$(echo "$cooked_json" | jq '.file_count')
+raw_packs=$(echo "$raw_json" | jq '.pack_count')
+raw_files=$(echo "$raw_json" | jq '.file_count')
+echo "updateIndex: wrote $OUTPUT (cooked: $cooked_packs packs / $cooked_files files; raw: $raw_packs packs / $raw_files files)"
