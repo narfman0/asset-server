@@ -1,20 +1,13 @@
 #!/bin/bash
-# Downloads selected Synty packs from asset server and converts FBX -> GLB
+# Downloads a pack from the asset server and converts FBX -> GLB
 # Usage: ./fetch_and_convert.sh [pack_name]
-#
-# Available Cindertide-relevant packs (use exact names):
-#   POLYGON_SciFi_Horror_SourceFiles_v2
-#   POLYGON_Prototype_SourceFiles_v4
-#   POLYGON_Western_Pack_Source_Files_v4
-#   POLYGON_CyberCity_SourceFiles_v3
-#
-# Example: ./fetch_and_convert.sh POLYGON_SciFi_Horror_SourceFiles_v2
+# Example: ./fetch_and_convert.sh my_pack
 
 set -e
 
 ASSET_SERVER="http://srv:49200"
-DOWNLOAD_DIR="${HOME}/.cindertide/assets/raw"
-CONVERTED_DIR="${HOME}/.cindertide/assets/converted"
+DOWNLOAD_DIR="${SCRIPT_DIR}/raw"
+CONVERTED_DIR="${SCRIPT_DIR}/cooked"
 BLENDER=$(which blender 2>/dev/null || echo "flatpak run org.blender.Blender")
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 

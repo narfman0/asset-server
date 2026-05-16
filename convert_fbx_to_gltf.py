@@ -3,11 +3,11 @@ Batch convert FBX files to glTF using Blender.
 Usage: blender --background --python convert_fbx_to_gltf.py -- <input_dir> <output_dir> [--rename PRESET]
 
 The optional --rename flag applies a bone-name remap during import. Use it for
-animation packs whose bone naming doesn't match our cached Synty character GLBs.
+animation packs whose bone naming doesn't match our character GLBs.
 
 Supported presets:
-  mixamo  — Mixamo's `mixamorig:*` naming → Synty bone names
-            (collapses Mixamo's 4-bone spine onto Synty's 3-bone spine)
+  mixamo  — Mixamo's `mixamorig:*` naming → humanoid bone names
+            (collapses Mixamo's 4-bone spine onto a 3-bone spine)
 """
 import bpy
 import sys
@@ -19,13 +19,13 @@ from pathlib import Path
 # original name is a key gets renamed to the value before glTF export.
 # Bones not in the dict keep their original name.
 #
-# Mixamo → Synty: maps Adobe's mocap rig to the Synty POLYGON Humanoid rig.
-# - Mixamo has 4 spine bones (Spine, Spine1, Spine2, Spine3); Synty has 3
+# Mixamo → humanoid: maps Adobe's mocap rig to a standard humanoid rig.
+# - Mixamo has 4 spine bones (Spine, Spine1, Spine2, Spine3); target has 3
 #   (Spine_01..03). We map Spine→Spine_01, Spine1→Spine_02, Spine2→Spine_03.
 #   The deepest spine (Spine3) maps to a "drop" name that won't match any
 #   target bone — Bevy will silently skip those tracks. Body silhouette still
 #   animates correctly via the three real spine bones.
-# - Mixamo's LeftUpLeg/RightUpLeg → Synty's UpperLeg_L/_R (same for arms, etc.)
+# - Mixamo's LeftUpLeg/RightUpLeg → UpperLeg_L/_R (same for arms, etc.)
 # - Mixamo's finger naming differs more substantially. We map the primary thumb
 #   and index/middle bones; the rest fall through unmapped (right-hand fingers
 #   are sub-pixel at our isometric zoom — invisible).
@@ -58,7 +58,7 @@ RENAME_PRESETS = {
         "mixamorig:RightArm":        "Shoulder_R",
         "mixamorig:RightForeArm":    "Elbow_R",
         "mixamorig:RightHand":       "Hand_R",
-        # Right-hand fingers stay unmapped; Synty character GLBs have them
+        # Right-hand fingers stay unmapped; character GLBs may have them
         # under `.001` suffix due to a Blender import quirk. At our isometric
         # zoom these tracks no-op invisibly.
 

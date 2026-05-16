@@ -1,2 +1,4 @@
 .env
 assets/
+raw/
+cooked/

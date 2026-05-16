@@ -6,7 +6,7 @@
 # Currently supported transforms:
 #   *.fbx           → GLB via transforms/fbx_to_glb.py
 #     - if the path contains '/mixamo' or '_mixamo' (case-insensitive),
-#       pass --rename mixamo so mixamorig:* bones get remapped to Synty names
+#       pass --rename mixamo so mixamorig:* bones get remapped to humanoid names
 #
 # Idempotent: each transform skips files whose cooked output exists and is
 # newer than the source.

@@ -46,7 +46,7 @@ output is missing or stale relative to source.
 
 If any path under raw/ contains `mixamo` (case-insensitive), the conversion
 runs with `--rename mixamo` so Mixamo's `mixamorig:*` bones get remapped to
-Synty POLYGON Humanoid names. See the script's `RENAME_PRESETS` dict for the
+standard humanoid names. See the script's `RENAME_PRESETS` dict for the
 full mapping including the 4-bone-spine → 3-bone-spine collapse.
 
 ## Index behavior
