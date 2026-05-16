@@ -59,18 +59,22 @@ index_tree() {
         '
 }
 
-cooked_json=$(index_tree "$COOKED_DIR" "$URL_PREFIX_COOKED")
-raw_json=$(index_tree "$RAW_DIR" "$URL_PREFIX_RAW")
+cooked_tmp=$(mktemp)
+raw_tmp=$(mktemp)
+trap 'rm -f "$cooked_tmp" "$raw_tmp"' EXIT
+
+index_tree "$COOKED_DIR" "$URL_PREFIX_COOKED" > "$cooked_tmp"
+index_tree "$RAW_DIR"    "$URL_PREFIX_RAW"    > "$raw_tmp"
 
 jq -n \
     --arg generated_at "$generated_at" \
-    --argjson cooked "$cooked_json" \
-    --argjson raw "$raw_json" \
-    '{ generated_at: $generated_at, cooked: $cooked, raw: $raw }' \
+    --slurpfile cooked "$cooked_tmp" \
+    --slurpfile raw    "$raw_tmp" \
+    '{ generated_at: $generated_at, cooked: $cooked[0], raw: $raw[0] }' \
     > "$OUTPUT"
 
-cooked_packs=$(echo "$cooked_json" | jq '.pack_count')
-cooked_files=$(echo "$cooked_json" | jq '.file_count')
-raw_packs=$(echo "$raw_json" | jq '.pack_count')
-raw_files=$(echo "$raw_json" | jq '.file_count')
+cooked_packs=$(jq '.pack_count' "$cooked_tmp")
+cooked_files=$(jq '.file_count' "$cooked_tmp")
+raw_packs=$(jq '.pack_count' "$raw_tmp")
+raw_files=$(jq '.file_count' "$raw_tmp")
 echo "updateIndex: wrote $OUTPUT (cooked: $cooked_packs packs / $cooked_files files; raw: $raw_packs packs / $raw_files files)"
