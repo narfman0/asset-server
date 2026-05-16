@@ -1,5 +1,6 @@
 services:
-  # nginx — serves cooked assets at /assets/ and the auto-generated index at /index.json.
+  # nginx — serves cooked assets at /assets/, raw at /raw/, logs at /logs/,
+  # and the auto-generated index at /index.json.
   assets:
     build:
       context: .
@@ -10,9 +11,10 @@ services:
     ports:
       - "${ASSET_PORT:-49200}:80"
     volumes:
-      # nginx is read-only on the cooked tree — the cooker is the only writer.
+      # nginx is read-only on all three trees — the cooker is the only writer.
       - ${COOKED_PATH:?set COOKED_PATH in .env}:/usr/share/nginx/html/assets:ro
       - ${RAW_PATH:?set RAW_PATH in .env}:/raw:ro
+      - ${LOGS_PATH:?set LOGS_PATH in .env}:/logs:ro
 
   # cooker — watches raw/ for FBX/etc, transforms to cooked/, regenerates index.
   # Runs Blender headless for FBX→GLB conversion. Other transforms (e.g.
@@ -27,6 +29,7 @@ services:
     environment:
       RAW_DIR: /raw
       COOKED_DIR: /cooked
+      LOGS_DIR: /logs
       INDEX_OUTPUT: /cooked/index.json
       # URL_PREFIX is written into the index's file paths. Must match what
       # the nginx service exposes (location /assets/ → /cooked/ in this layout).
@@ -37,5 +40,6 @@ services:
     volumes:
       - ${RAW_PATH:?set RAW_PATH in .env}:/raw:ro
       - ${COOKED_PATH:?set COOKED_PATH in .env}:/cooked
+      - ${LOGS_PATH:?set LOGS_PATH in .env}:/logs
       # Share the index generator with the nginx container so both stay in sync.
       - ./updateIndex.sh:/usr/local/bin/updateIndex.sh:ro

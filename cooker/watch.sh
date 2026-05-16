@@ -12,9 +12,17 @@ set -euo pipefail
 
 : "${RAW_DIR:=/raw}"
 : "${COOKED_DIR:=/cooked}"
+: "${LOGS_DIR:=/logs}"
 : "${DEBOUNCE_SECS:=5}"
 : "${INDEX_OUTPUT:=/cooked/index.json}"
 : "${URL_PREFIX:=assets}"
+
+mkdir -p "$LOGS_DIR"
+
+COOKER_LOG="${LOGS_DIR}/cooker.log"
+
+# Tee all output (stdout+stderr) to the persistent cooker log.
+exec > >(tee -a "$COOKER_LOG") 2>&1
 
 log() { echo "[cooker $(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
 
@@ -28,13 +36,14 @@ regenerate_index() {
 }
 
 cook_all() {
-    log "cooking raw → cooked (incremental)"
-    /opt/cooker/cook.sh "${RAW_DIR}" "${COOKED_DIR}"
+    local run_log="${LOGS_DIR}/cook-$(date -u +%Y%m%dT%H%M%SZ).log"
+    log "cooking raw → cooked (incremental); run log → ${run_log}"
+    /opt/cooker/cook.sh "${RAW_DIR}" "${COOKED_DIR}" 2>&1 | tee "$run_log"
 }
 
 # Initial pass on startup so a fresh container picks up any pre-existing files
 # in the raw mount.
-log "cooker starting; RAW=${RAW_DIR} COOKED=${COOKED_DIR} DEBOUNCE=${DEBOUNCE_SECS}s"
+log "cooker starting; RAW=${RAW_DIR} COOKED=${COOKED_DIR} LOGS=${LOGS_DIR} DEBOUNCE=${DEBOUNCE_SECS}s"
 cook_all
 regenerate_index
 

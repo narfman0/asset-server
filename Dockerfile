@@ -30,6 +30,14 @@ server {
         autoindex_localtime on;
     }
 
+    location /logs/ {
+        alias /logs/;
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+        default_type text/plain;
+    }
+
     location ~ \.json$ {
         default_type application/json;
     }
