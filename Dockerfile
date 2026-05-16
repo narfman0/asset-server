@@ -23,6 +23,13 @@ server {
         autoindex_localtime on;
     }
 
+    location /raw/ {
+        alias /raw/;
+        autoindex on;
+        autoindex_exact_size off;
+        autoindex_localtime on;
+    }
+
     location ~ \.json$ {
         default_type application/json;
     }

@@ -12,6 +12,7 @@ services:
     volumes:
       # nginx is read-only on the cooked tree — the cooker is the only writer.
       - ${COOKED_PATH:?set COOKED_PATH in .env}:/usr/share/nginx/html/assets:ro
+      - ${RAW_PATH:?set RAW_PATH in .env}:/raw:ro
 
   # cooker — watches raw/ for FBX/etc, transforms to cooked/, regenerates index.
   # Runs Blender headless for FBX→GLB conversion. Other transforms (e.g.
